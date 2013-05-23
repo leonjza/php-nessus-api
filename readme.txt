@@ -5,7 +5,7 @@ Information:
 The Nessus Vulnerability Scanner provides an API interface via XMLRPC.
 See: http://www.nessus.org/documentation/nessus_XMLRPC_protocol_guide.pdf
 
-This is simply a set of functions implemented using PHP-Curl to enable querying of this
+This class is simply a set of functions implemented using PHP-Curl to enable querying of this
 API using a function and then receiving an array with the applicable data.
 
 Requires:
@@ -14,37 +14,40 @@ Requires:
 -	php-curl
 -	php-cli if you plan on running scripts from the cli
 
-Documentation:
---------------
-All function responses are documented in the source, detailing the array contents that
-will be returned.
-
-Notes:
-------
-A login must be performed to get a valid token. This token must be used to make any API
-queries. Due to the randomness of the token expiry its suggested that a 'perform_login'
-and 'perform_logout' is done with each call.
-
-
 Usage example:
 ---------------
 
 Simply include ‘nessus.php’ in your script.
+Then, create a new NessusInterface Object, like:
 
-Logging in and logging out.
------------------------------
-$login = perform_login($nessusUrl,$nessusUser,$nessusPassword);
-if($login['status'] <> 'OK') { die; } else { $token = $login['token']; }
+    try {
 
-//Do some API calls
+        $api = new NessusInterface(
+            $__url,
+            $__port,
+            $__username,
+            $__password
+        );
 
-perform_logout($nessusUrl,$token);
+    } catch(Exception $e) {
 
-// Where
-//--------
-// $nessusUrl = 'http://localhost:8834'; //Nessus Server in quotes i.e. 'https://nessus.server.local:8834/'
-// $nessusUser = 'username'; //Nessus Server username in quotes.
-// $nessusPassword = 'password'; // Nessus Server password in quotes.
+        preprint($e->getMessage());
+    }
+
+//Do some API calls. Most methods return some usefull information that should be inspected in your usage case.
+
+    try {
+
+        $api->feed();
+        $api->reportList();
+        $api->policyList();
+
+        $api->scanList();
+
+    } catch(Exception $e) {
+
+        preprint($e->getMessage());
+    }
 
 Known issues:
 -------------
