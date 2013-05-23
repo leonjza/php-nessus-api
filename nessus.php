@@ -958,4 +958,74 @@ class NessusInterface
         //Return what we got
         return($values);
     }
+
+   /**
+     * Query the servers load
+     *
+     * @return A array confirming the scans launch request.
+     */
+    public function serverLoad()
+    {
+
+        // Set a new the Sequence
+        $this->setSequence();
+
+        //set POST variables
+        $fields_string = null;
+        $fields = array(
+            "token"     =>urlencode($this->token),
+            "seq"       =>urlencode($this->sequence)
+        );
+
+        //url-ify the data for the POST
+        foreach ($fields as $key=>$value) {
+            $fields_string .= $key."=".$value."&";
+        }
+        rtrim($fields_string, "&");
+
+        //Set RPC funtion to URL
+        $this->call = $this->url . "/server/load";
+
+        // Log the request
+        $this->logRequest();
+
+        //open connection
+        $ch = curl_init();
+
+        //set the url, number of POST vars, POST data
+        curl_setopt($ch, CURLOPT_URL, $this->call);
+        curl_setopt($ch, CURLOPT_POST,   count($fields));
+        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
+
+        //execute post
+        $result = curl_exec($ch);
+
+        // Check what we got back
+        $this->checkResponse($ch, $result);
+
+        //close connection
+        curl_close($ch);
+
+        //Build the return array
+        $xml = new SimpleXMLElement($result);
+
+        // Check the response Sequence Number
+        $this->checkSequence((string)$xml->seq);
+
+        $values = array();
+
+        $values["platform"]         = (string)$xml->contents->platform;
+        $values["num_scans"]        = (string)$xml->contents->load->num_scans;
+        $values["num_sessions"]     = (string)$xml->contents->load->num_sessions;
+        $values["num_hosts"]        = (string)$xml->contents->load->num_hosts;
+        $values["num_tcp_sessions"] = (string)$xml->contents->load->num_hosts;
+        $values["num_scans"]        = (string)$xml->contents->load->num_scans;
+        $values["loadavg"]          = (string)$xml->contents->load->loadavg;
+
+        //Return what we got
+        return($values);
+    }
 }
