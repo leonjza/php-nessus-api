@@ -986,9 +986,6 @@ class NessusInterface
         //Set RPC funtion to URL
         $this->call = $this->url . "/server/load";
 
-        // Log the request
-        $this->logRequest();
-
         //open connection
         $ch = curl_init();
 
