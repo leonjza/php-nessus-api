@@ -22,6 +22,7 @@ Usage example:
 Simply include ‘nessus.php’ in your script.
 Then, create a new NessusInterface Object, like:
 
+```php
     try {
 
         $api = new NessusInterface(
@@ -35,9 +36,10 @@ Then, create a new NessusInterface Object, like:
 
         preprint($e->getMessage());
     }
-
+```
 //Do some API calls. Most methods return some usefull information that should be inspected in your usage case.
 
+```php
     try {
 
         $api->feed();
@@ -50,6 +52,25 @@ Then, create a new NessusInterface Object, like:
 
         preprint($e->getMessage());
     }
+```
+
+Current Available Methods
+-------------------------
+
+    [0] => __construct
+    [1] => __destruct
+    [2] => reportList
+    [3] => feed
+    [4] => policyList
+    [5] => scanList
+    [6] => templateList
+    [7] => newScanTemplate
+    [8] => scanPause
+    [9] => scanResume
+    [10] => scanStop
+    [11] => templateDelete
+    [12] => templateLaunch
+    [13] => serverLoad
 
 Known issues:
 -------------
