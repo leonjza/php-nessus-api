@@ -147,7 +147,7 @@ class NessusInterface
         );
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/login/";
+        $this->call = $this->url . "/login";
 
         //url-ify the data for the POST
         foreach ($fields as $key=>$value) {
@@ -205,7 +205,7 @@ class NessusInterface
             "seq"    =>urlencode($this->sequence)
         );
         //Set RPC funtion to URL
-        $this->call = $this->url . "/logout/";
+        $this->call = $this->url . "/logout";
 
         //url-ify the data for the POST
         foreach ($fields as $key=>$value) {
@@ -268,7 +268,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/report/list/";
+        $this->call = $this->url . "/report/list";
 
         //open connection
         $ch = curl_init();
@@ -334,7 +334,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/feed/";
+        $this->call = $this->url . "/feed";
 
         //open connection
         $ch = curl_init();
@@ -401,7 +401,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/policy/list/";
+        $this->call = $this->url . "/policy/list";
 
         //open connection
         $ch = curl_init();
@@ -441,9 +441,9 @@ class NessusInterface
     }
 
     /**
-     * Retreive a list of the current running scans as well as the configured templates.
+     * Retreive a list of the current running scans
      *
-     * @return An array containing the policy names and their numerical references
+     * @return An array with policy uuid's and their details
      */
     public function scanList()
     {
@@ -465,7 +465,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/list/";
+        $this->call = $this->url . "/scan/list2";
 
         //open connection
         $ch = curl_init();
@@ -494,33 +494,96 @@ class NessusInterface
         $this->checkSequence((string)$xml->seq);
 
         $values = array();
-        foreach ($xml->contents as $item) {
+        foreach ($xml->contents->scans as $scan) {
 
-            foreach ($item->scans->scanList as $scan) {
+            // This API call will return a blank array for $scan->scan. Check if uuid is set
+            // to check if we have any content.
+            if(isset($scan->scan->uuid)) {
 
-                foreach ($scan->scan as $details) {
-
-                    $uuid=(string)$details->uuid;
-                    $values["currentScans"][$uuid]["readableName"]        = (string)$details->readableName;
-                    $values["currentScans"][$uuid]["owner"]               = (string)$details->owner;
-                    $values["currentScans"][$uuid]["start_time"]          = (string)$details->start_time;
-                    $values["currentScans"][$uuid]["status"]              = (string)$details->status;
-                    $values["currentScans"][$uuid]["completion_current"]  = (string)$details->completion_current;
-                    $values["currentScans"][$uuid]["completion_total"]    = (string)$details->completion_total;
-                }
-            }
-            foreach ($item->templates->template as $template) {
-
-                $uuid=(string)$template->name;
-                $values["templates"][$uuid]["policy_id"]     = (string)$template->policy_id;
-                $values["templates"][$uuid]["readableName"]  = (string)$template->readableName;
-                $values["templates"][$uuid]["owner"]         = (string)$template->owner;
-                $values["templates"][$uuid]["startTime"]     = (string)$template->startTime;
-                $values["templates"][$uuid]["target"]        = (string)$template->target;
+                $values[(string)$scan->scan->uuid]["completion_current"]    = (string)$scan->scan->completion_current;
+                $values[(string)$scan->scan->uuid]["completion_total"]      = (string)$scan->scan->completion_total;
+                $values[(string)$scan->scan->uuid]["readablename"]          = (string)$scan->scan->readablename;
+                $values[(string)$scan->scan->uuid]["status"]                = (string)$scan->scan->status;
+                $values[(string)$scan->scan->uuid]["start_time"]            = (string)$scan->scan->start_time;
             }
         }
 
         //Return what we get
+        return($values);
+    }
+
+    /**
+     * Retreive a list of all the scan templates
+     *
+     * @return An array with template names and their details
+     */
+    public function templateList()
+    {
+
+        // Set a new the Sequence
+        $this->setSequence();
+
+        //set POST variables
+        $fields_string = null;
+        $fields = array(
+            "token"  =>urlencode($this->token),
+            "seq"    =>urlencode($this->sequence)
+        );
+
+        //url-ify the data for the POST
+        foreach ($fields as $key=>$value) {
+            $fields_string .= $key."=".$value."&";
+        }
+        rtrim($fields_string, "&");
+
+        //Set RPC funtion to URL
+        $this->call = $this->url . "/scan/template/list2";
+
+        //open connection
+        $ch = curl_init();
+
+        //set the url, number of POST vars, POST data
+        curl_setopt($ch, CURLOPT_URL, $this->call);
+        curl_setopt($ch, CURLOPT_POST,   count($fields));
+        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
+
+        //execute post
+        $result = curl_exec($ch);
+
+        // Check what we got back
+        $this->checkResponse($ch, $result);
+
+        //close connection
+        curl_close($ch);
+
+        //Build the return array
+        $xml = new SimpleXMLElement($result);
+
+        // Check the response Sequence Number
+        $this->checkSequence((string)$xml->seq);
+
+        $values = array();
+        foreach ($xml->contents->templates->template as $template) {
+
+            // This API call will return a blank array for $scan->scan. Check if uuid is set
+            // to check if we have any content.
+            if(isset($template->name)) {
+
+                $values[(string)$template->name]["policy_id"]       = (string)$template->policy_id;
+                $values[(string)$template->name]["name"]            = (string)$template->name;
+                $values[(string)$template->name]["serveruuid"]      = (string)$template->serveruuid;
+                $values[(string)$template->name]["rrules"]          = (string)$template->rrules;
+                $values[(string)$template->name]["readablename"]    = (string)$template->readablename;
+                $values[(string)$template->name]["starttime"]       = (string)$template->starttime;
+                $values[(string)$template->name]["target"]          = (string)$template->target;
+                $values[(string)$template->name]["owner"]           = (string)$template->owner;
+            }
+        }
+
+        // Return what we get
         return($values);
     }
 
@@ -561,7 +624,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/new/";
+        $this->call = $this->url . "/scan/template/new";
 
         //open connection
         $ch = curl_init();
@@ -632,7 +695,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/pause/";
+        $this->call = $this->url . "/scan/pause";
 
         //open connection
         $ch = curl_init();
@@ -703,7 +766,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/resume/";
+        $this->call = $this->url . "/scan/resume";
 
         //open connection
         $ch = curl_init();
@@ -775,7 +838,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/stop/";
+        $this->call = $this->url . "/scan/stop";
 
         //open connection
         $ch = curl_init();
@@ -847,7 +910,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/delete/";
+        $this->call = $this->url . "/scan/template/delete";
 
         //open connection
         $ch = curl_init();
@@ -919,7 +982,7 @@ class NessusInterface
         rtrim($fields_string, "&");
 
         //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/launch/";
+        $this->call = $this->url . "/scan/template/launch";
 
         //open connection
         $ch = curl_init();
