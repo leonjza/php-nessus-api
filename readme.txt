@@ -5,7 +5,7 @@ Information:
 The Nessus Vulnerability Scanner provides an API interface via XMLRPC.
 See: http://static.tenable.com/documentation/nessus_5.0_XMLRPC_protocol_guide.pdf
 
-This code has only been tested against Version 5.0 Scanners!
+The latest version of this wrapper has only been tested against a Nessus 5.2.1 scanner.
 
 This class is simply a set of functions implemented using PHP-Curl to enable querying of this
 API using a function and then receiving an array with the applicable data.
