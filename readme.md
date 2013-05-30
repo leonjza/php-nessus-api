@@ -19,58 +19,56 @@ Requires:
 Usage example:
 ---------------
 
-Simply include ‘nessus.php’ in your script.
-Then, create a new NessusInterface Object, like:
+Simply include `nessus.php` in your script.
+Then, create a new *NessusInterface* Object, like:
 
 ```php
-    try {
+try {
 
-        $api = new NessusInterface(
-            $__url,
-            $__port,
-            $__username,
-            $__password
-        );
+    $api = new NessusInterface(
+        $__url,
+        $__port,
+        $__username,
+        $__password
+    );
 
-    } catch(Exception $e) {
+} catch(Exception $e) {
 
-        preprint($e->getMessage());
-    }
+    preprint($e->getMessage());
+}
 ```
-//Do some API calls. Most methods return some usefull information that should be inspected in your usage case.
+
+Do some API calls. Most methods return some usefull information that should be inspected in your usage case.
 
 ```php
-    try {
+try {
 
-        $api->feed();
-        $api->reportList();
-        $api->policyList();
+    $api->feed();
+    $api->reportList();
+    $api->policyList();
+    $api->scanList();
 
-        $api->scanList();
+} catch(Exception $e) {
 
-    } catch(Exception $e) {
-
-        preprint($e->getMessage());
-    }
+    preprint($e->getMessage());
+}
 ```
 
 Current Available Methods
 -------------------------
 
-    [0] => __construct
-    [1] => __destruct
-    [2] => reportList
-    [3] => feed
-    [4] => policyList
-    [5] => scanList
-    [6] => templateList
-    [7] => newScanTemplate
-    [8] => scanPause
-    [9] => scanResume
-    [10] => scanStop
-    [11] => templateDelete
-    [12] => templateLaunch
-    [13] => serverLoad
+    [1] => reportList
+    [2] => feed
+    [3] => policyList
+    [4] => scanList
+    [5] => templateList
+    [6] => newScanTemplate
+    [7] => scanPause
+    [8] => scanResume
+    [9] => scanStop
+    [10] => templateDelete
+    [11] => templateLaunch
+    [12] => serverLoad
 
 Known issues:
 -------------
