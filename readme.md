@@ -75,3 +75,7 @@ Known issues:
 -	There are probably bugs about.
 -	Not all API call have been implemented. Coming soon(tm) as I need them.
 -	Probably lack of proper documentation too.
+
+Contact
+-------
+Twitter: @leonjza
