@@ -128,32 +128,42 @@ class NessusInterface
     }
 
     /**
-     * Login to the Nessus Server preserving the token in this->token
+     * Log API requests to the Applications General Log
      *
      * @return nothing
      */
-    private function login()
+    private function logRequest()
     {
 
-        // Set a new the Sequence
-        $this->setSequence();
+        // This can be configured to do anything you like really.
+        return null;
+    }
+
+    /**
+     * Check that the returned sequence number matched the sequence that was sent.
+     *
+     * @param array  $fields   An array with arguements that accompany the endpoint
+     * @param string $endpoint The API endpoint that should be called
+     *
+     * @return XML containing the endpoint response
+     */
+    private function callApi($fields, $endpoint)
+    {
+
+        //Set RPC funtion to URL
+        $this->call = $this->url . $endpoint;
 
         //set POST variables
         $fields_string = null;
-        $fields = array(
-            "login"     =>urlencode($this->username),
-            "password"  =>urlencode($this->password),
-            "seq"       =>urlencode($this->sequence)
-        );
-
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/login";
 
         //url-ify the data for the POST
         foreach ($fields as $key=>$value) {
             $fields_string .= $key."=".$value."&";
         }
         rtrim($fields_string, "&");
+
+        // Log the request
+        $this->logRequest();
 
         //open connection
         $ch = curl_init();
@@ -165,7 +175,7 @@ class NessusInterface
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT,  5); //Give the Nessus box 5 seconds to respond, or else...
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT,  5); //Give the request 5 seconds to respond, or else...
 
         //execute post
         $result = curl_exec($ch);
@@ -181,6 +191,34 @@ class NessusInterface
 
         // Check the response Sequence Number
         $this->checkSequence((string)$xml->seq);
+
+        // Return the response
+        return $xml;
+    }
+
+    /**
+     * Login to the Nessus Server preserving the token in this->token
+     *
+     * @return nothing
+     */
+    private function login()
+    {
+
+        // Set a new Sequence Number
+        $this->setSequence();
+
+        //set POST variables
+        $fields = array(
+            "login"     =>urlencode($this->username),
+            "password"  =>urlencode($this->password),
+            "seq"       =>urlencode($this->sequence)
+        );
+
+        // Set the API Endpoint we will call
+        $endpoint = "/login";
+
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         // Set the session token
         $this->token = (string)$xml->contents->token;
@@ -199,45 +237,16 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"  =>urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/logout";
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/logout";
 
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         // Unset the session token
         $this->token = null;
@@ -255,46 +264,16 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token" => urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/report/list";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/report/list";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         // Prepare the return array
         $values = array();
@@ -305,7 +284,7 @@ class NessusInterface
             $values["reports"][(string)$report->name]["timestamp"] = (string)$report->timestamp;
         }
 
-        //Return what we get
+        // Return what we get
         return($values);
     }
 
@@ -320,47 +299,17 @@ class NessusInterface
         // Set a new the Sequence
         $this->setSequence();
 
-        //set POST variables
-        $fields_string = null;
+        // Set POST variables
         $fields = array(
             "token"  =>urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/feed";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/feed";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values= array (
             "feed"               => (string)$xml->contents->feed,
@@ -372,7 +321,7 @@ class NessusInterface
             "expiration_time"    => (string)$xml->contents->expiration_time
         );
 
-        //Return what we got
+        // Return what we got
         return($values);
     }
 
@@ -387,47 +336,17 @@ class NessusInterface
         // Set a new the Sequence
         $this->setSequence();
 
-        //set POST variables
-        $fields_string = null;
+        // Set POST variables
         $fields = array(
             "token"  =>urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/policy/list";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/policy/list";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         //##TODO: Lots more information available here. Should maybe make a seperate details() call.
         $values = array();
@@ -452,46 +371,16 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"  =>urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/list2";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/list2";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->scans as $scan) {
@@ -524,46 +413,16 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"  =>urlencode($this->token),
             "seq"    =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/template/list2";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/list2";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->templates->template as $template) {
@@ -606,7 +465,6 @@ class NessusInterface
         // Set a new the Sequence
         $this->setSequence();
 
-        $fields_string = null;
         $fields = array(
             "template_name" =>urlencode($template_name),
             "rRules"        =>urlencode($freq),
@@ -614,43 +472,14 @@ class NessusInterface
             "policy_id"     =>urlencode($policy_id),
             "target"        =>urlencode($target),
             "token"         =>urlencode($this->token),
-            "seq"    =>urlencode($this->sequence)
+            "seq"           =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/template/new";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/new";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->template as $response) {
@@ -681,47 +510,17 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "scan_uuid" =>urlencode($uuid),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/pause";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/pause";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->scan as $scan) {
@@ -752,47 +551,17 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "scan_uuid" =>urlencode($uuid),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/resume";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/resume";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->scan as $scan) {
@@ -824,47 +593,17 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "scan_uuid" =>urlencode($uuid),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/stop";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/stop";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->scan as $scan) {
@@ -896,47 +635,17 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "template"  =>urlencode($template_name),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/template/delete";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/delete";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->template as $response) {
@@ -968,47 +677,17 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "template"  =>urlencode($template_name),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/scan/template/launch";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/scan/template/launch";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
         foreach ($xml->contents->scan as $response) {
@@ -1022,7 +701,7 @@ class NessusInterface
         return($values);
     }
 
-   /**
+    /**
      * Query the servers load
      *
      * @return A array confirming the scans launch request.
@@ -1034,49 +713,18 @@ class NessusInterface
         $this->setSequence();
 
         //set POST variables
-        $fields_string = null;
         $fields = array(
             "token"     =>urlencode($this->token),
             "seq"       =>urlencode($this->sequence)
         );
 
-        //url-ify the data for the POST
-        foreach ($fields as $key=>$value) {
-            $fields_string .= $key."=".$value."&";
-        }
-        rtrim($fields_string, "&");
+        // Set the API Endpoint we will call
+        $endpoint = "/server/load";
 
-        //Set RPC funtion to URL
-        $this->call = $this->url . "/server/load";
-
-        //open connection
-        $ch = curl_init();
-
-        //set the url, number of POST vars, POST data
-        curl_setopt($ch, CURLOPT_URL, $this->call);
-        curl_setopt($ch, CURLOPT_POST,   count($fields));
-        curl_setopt($ch, CURLOPT_POSTFIELDS,   $fields_string);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,  false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,  false);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
-
-        //execute post
-        $result = curl_exec($ch);
-
-        // Check what we got back
-        $this->checkResponse($ch, $result);
-
-        //close connection
-        curl_close($ch);
-
-        //Build the return array
-        $xml = new SimpleXMLElement($result);
-
-        // Check the response Sequence Number
-        $this->checkSequence((string)$xml->seq);
+        // Do the Request
+        $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
-
         $values["platform"]         = (string)$xml->contents->platform;
         $values["num_scans"]        = (string)$xml->contents->load->num_scans;
         $values["num_sessions"]     = (string)$xml->contents->load->num_sessions;
