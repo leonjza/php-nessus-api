@@ -383,17 +383,17 @@ class NessusInterface
         $xml = $this->callApi($fields, $endpoint);
 
         $values = array();
-        foreach ($xml->contents->scans as $scan) {
+        foreach ($xml->contents->scans->scan as $scan) {
 
             // This API call will return a blank array for $scan->scan. Check if uuid is set
             // to check if we have any content.
-            if(isset($scan->scan->uuid)) {
+            if (isset($scan->uuid)) {
 
-                $values[(string)$scan->scan->uuid]["completion_current"]    = (string)$scan->scan->completion_current;
-                $values[(string)$scan->scan->uuid]["completion_total"]      = (string)$scan->scan->completion_total;
-                $values[(string)$scan->scan->uuid]["readablename"]          = (string)$scan->scan->readablename;
-                $values[(string)$scan->scan->uuid]["status"]                = (string)$scan->scan->status;
-                $values[(string)$scan->scan->uuid]["start_time"]            = (string)$scan->scan->start_time;
+                $values[(string)$scan->uuid]["completion_current"]    = (string)$scan->completion_current;
+                $values[(string)$scan->uuid]["completion_total"]      = (string)$scan->completion_total;
+                $values[(string)$scan->uuid]["readablename"]          = (string)$scan->readablename;
+                $values[(string)$scan->uuid]["status"]                = (string)$scan->status;
+                $values[(string)$scan->uuid]["start_time"]            = (string)$scan->start_time;
             }
         }
 
