@@ -1,3 +1,7 @@
+#WARNING
+
+## This repository is no longer maintained. You should be using this one instead https://github.com/leonjza/PHPNessusNG
+
 #php-nessus-api
 
 Information:
